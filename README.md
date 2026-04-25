@@ -19,7 +19,7 @@ Tujuan utama TavernEx adalah menyediakan "Tavern" atau tempat persinggahan yang 
 ---
 
 ## 🔑 Akun Uji Coba (Credentials)
-Gunakan akun berikut untuk mencoba fitur di setiap role. Password untuk semua akun di bawah adalah: `password123`
+Gunakan akun berikut untuk mencoba fitur di setiap role. Password untuk semua akun di bawah adalah: `123`
 
 | Role | Username | Kegunaan |
 | :--- | :--- | :--- |
