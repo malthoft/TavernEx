@@ -46,35 +46,61 @@ Pengujian dilakukan untuk memastikan semua alur dalam *Use Case Diagram* berfung
 
 ---
 
-## 📖 Panduan Penggunaan Per Role
+## 📖 Tutorial Lengkap & Panduan Akses Per Role
 
-### 1. 🛡️ Role: Admin (The Overseer)
-Admin bertanggung jawab menjaga ekosistem TavernEx tetap sehat dan aman.
-- **Akses Dashboard**: Mengelola statistik platform.
-- **Verifikasi Dana**: Cek menu transaksi, pastikan pembeli sudah transfer, lalu klik "Verifikasi Dana".
-- **Verifikasi Penjual**: Cek data KTP/identitas pendaftar penjual dan setujui jika valid.
-- **Moderasi**: Menutup toko yang melanggar aturan atau menghapus produk ilegal.
+Berikut adalah panduan langkah demi langkah untuk menggunakan fitur-fitur utama di TavernEx berdasarkan masing-masing role. Sistem kini telah diperbarui dengan fitur notifikasi *real-time* dan sistem penyimpanan gambar berbasis *filesystem* yang lebih optimal.
+
+### 1. 🛒 Role: Pembeli (The Adventurer)
+Pembeli dapat mencari dan membeli akun atau item game dengan jaminan keamanan penuh melalui sistem Rekber (Escrow).
+- **Cara Akses**:
+  1. Login menggunakan akun pembeli (`GuestBuyer_99`).
+  2. Anda akan langsung diarahkan ke halaman utama (Marketplace).
+  3. Untuk melihat pesanan dan transaksi Anda, klik **Ikon Profil (pojok kanan atas)** > Pilih **"Pesanan Saya"** atau **"Dashboard"**.
+- **Panduan Transaksi**:
+  - **Eksplorasi Produk**: Gunakan kolom pencarian atau filter kategori (Mobile/PC) di halaman utama.
+  - **Checkout (Beli)**: Klik produk, baca deskripsi dengan teliti, lalu klik tombol "Beli".
+  - **Pembayaran Escrow**: Lakukan transfer ke rekening sistem (simulasi) dan tunggu Admin memverifikasi dana tersebut.
+  - **Pantau Pesanan**: Cek menu "Pesanan Saya". Jika statusnya "Processing", penjual sedang memproses pesanan Anda.
+  - **Terima Akun/Item**: Setelah penjual mengirimkan pesanan, buka detail pesanan. Anda akan melihat kredensial login (username/password) dan bukti pengiriman dari penjual.
+  - **Selesaikan**: Amankan akun Anda, lalu klik "Selesaikan Pesanan" agar dana bisa diteruskan ke penjual. Berikan ulasan/rating untuk reputasi penjual.
 
 ### 2. 💰 Role: Penjual (The Merchant)
-Penjual bisa berdagang setelah akun diverifikasi oleh admin.
-- **Buka Toko**: Atur jam operasional dan status toko (Buka/Tutup).
-- **Posting Produk**: Masukkan detail game, tipe login (Moonton/Riot/dll), stok, dan harga.
-- **Proses Pesanan**: Jika ada pembeli, tunggu dana diverifikasi admin. Setelah itu, unggah bukti screenshot pengiriman dan tulis data login akun di kolom yang tersedia.
-- **Tarik Saldo**: Pantau saldo yang masuk dari pesanan yang sukses.
+Penjual dapat mengelola katalog produk, toko, dan memproses pesanan masuk.
+- **Cara Akses (PENTING)**:
+  1. Login menggunakan akun penjual (`ProGamer_ID`).
+  2. Untuk masuk ke area manajemen toko, **wajib** klik **Ikon Profil (pojok kanan atas)** > Pilih **"Seller Dashboard"** (atau Kelola Toko/Pesanan). *Menu khusus penjual hanya bisa diakses melalui dropdown profil ini.*
+- **Panduan Pengelolaan Toko**:
+  - **Buka Toko**: Atur profil toko Anda, termasuk jam operasional dan status (Buka/Tutup).
+  - **Posting Produk**: Masuk ke menu produk dan tambahkan item baru. Isi detail lengkap, harga, stok, dan unggah gambar produk (sistem kini mendukung upload gambar yang lebih cepat via direktori lokal).
+  - **Proses Pesanan Masuk**: Pantau ikon Lonceng Notifikasi. Jika ada pesanan berstatus "Processing" (dana sudah diamankan Admin), segera proses pesanan tersebut.
+  - **Kirim Data**: Masukkan kredensial login akun (Email/Password) di kolom enkripsi yang tersedia dan unggah bukti pengiriman (screenshot).
+  - **Pencairan Saldo**: Dana akan otomatis masuk ke dompet akun Anda setelah pembeli mengkonfirmasi pesanan selesai.
 
-### 3. 🛒 Role: Pembeli (The Adventurer)
-Pembeli mencari kenyamanan dan keamanan saat mencari aset game.
-- **Eksplorasi**: Gunakan fitur pencarian dan filter game populer di homepage.
-- **Beli via Escrow**: Lakukan checkout, transfer ke rekening sistem (simulasi), dan tunggu admin verifikasi.
-- **Ambil Data**: Setelah penjual mengirim data dan admin menyetujui, pembeli dapat melihat data login di halaman Escrow.
-- **Ulasan**: Berikan rating dan komen setelah transaksi selesai untuk reputasi penjual.
+### 3. 🛡️ Role: Admin (The Overseer)
+Admin memiliki kontrol penuh atas lalu lintas transaksi dan moderasi platform.
+- **Cara Akses**:
+  1. Login menggunakan akun admin (`Admin_Tavern`).
+  2. Klik **Ikon Profil (pojok kanan atas)** > Pilih **"Admin Dashboard"**.
+- **Panduan Moderasi & Sistem**:
+  - **Verifikasi Dana (Tugas Utama)**: Buka menu "Transaksi" atau "Escrow". Cari transaksi yang berstatus "Pending". Jika dana valid, klik **"Verifikasi Dana"** agar penjual bisa mulai mengirim pesanan.
+  - **Manajemen Pengguna**: Verifikasi pendaftaran toko baru (validasi KTP/Identitas).
+  - **Moderasi Platform**: Blokir/tutup toko yang terindikasi penipuan dan hapus postingan produk yang melanggar aturan.
+  - **Penyelesaian Sengketa**: Menjadi penengah jika ada komplain dari pembeli terkait data akun yang tidak valid.
+
+---
+
+## 🛠️ Update Sistem Terbaru
+Sistem TavernEx telah menerima beberapa peningkatan arsitektur untuk performa dan keamanan:
+- **Migrasi Penyimpanan Gambar**: Beralih dari penyimpanan database *Base64* ke *Filesystem-based architecture* lokal. Mempercepat waktu muat halaman katalog secara signifikan dan mengurangi beban *query* database.
+- **Sistem Notifikasi Menyeluruh**: Implementasi notifikasi *site-wide* untuk memberitahu penjual (ada pesanan baru) dan pembeli (status pesanan berubah) tanpa harus me-refresh halaman terus-menerus.
+- **Perbaikan UI/UX Escrow**: Alur serah terima data login kini lebih rapi tanpa *layout bugs*, menjamin data sensitif hanya terlihat di sisi pembeli yang berhak.
 
 ---
 
 ## 💻 Teknologi yang Digunakan
-- **Frontend**: HTML5, Vanilla CSS, Tailwind CSS (via CDN), JavaScript (AJAX/Fetch).
-- **Backend**: PHP 8.x Native.
-- **Database**: MySQL.
+- **Frontend**: HTML5, Vanilla CSS, Tailwind CSS (via CDN), JavaScript.
+- **Backend**: PHP 8.x Native (Non-Framework).
+- **Database**: MySQL (Optimized Queries).
 - **UI Components**: Phosphor Icons, Google Fonts (Inter).
 
 ---
