@@ -35,7 +35,7 @@ require_once '../includes/header.php';
             <a href="../index.php?category=<?= $cat['id'] ?>" class="group block relative rounded-2xl hover:-translate-y-2 transition-all duration-300">
                 <div class="w-full aspect-[3/4] bg-gradient-to-br from-slate-700 to-slate-850 rounded-2xl flex items-center justify-center border border-slate-600 group-hover:border-emerald-500/50 shadow-xl relative overflow-hidden">
                     <?php if($cat['image_url']): ?>
-                        <img src="../<?= $cat['image_url'] ?>" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                        <img src="<?= strpos($cat['image_url'], 'http') === 0 || strpos($cat['image_url'], 'data:') === 0 ? $cat['image_url'] : '../' . $cat['image_url'] ?>" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
                     <?php else: ?>
                         <i class="ph-fill ph-game-controller text-5xl text-slate-500 group-hover:text-emerald-400 transition-colors relative z-10"></i>
                     <?php endif; ?>

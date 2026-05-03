@@ -10,7 +10,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     $stmt = $conn->prepare("SELECT id FROM users WHERE username=?");
     $stmt->bind_param("s", $username);
     $stmt->execute();
-    if($stmt->get_result()->num_rows > 0) {
+    if(stmt_num_rows($stmt) > 0) {
         $error = "Username sudah digunakan!";
     } else {
         $is_verified = ($role === 'buyer') ? 1 : 0; // Buyer is verified by default, Seller needs manual KTP validation

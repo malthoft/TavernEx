@@ -122,30 +122,18 @@ if($action == 'submit_delivery' && $_SERVER['REQUEST_METHOD'] == 'POST') {
     $sensitive = $conn->real_escape_string($_POST['sensitive_data'] ?? '');
     $username = $_SESSION['username'];
 
-    if(!empty($_FILES['delivery_image']['name'])) {
-        $target_dir = "../uploads/proofs/";
-        if (!file_exists($target_dir)) mkdir($target_dir, 0777, true);
+    $stmt = $conn->prepare("UPDATE transactions SET sensitive_data=? WHERE id=?");
+    $stmt->bind_param("ss", $sensitive, $trx_id);
+    
+    if($stmt->execute()) {
+        $msg = "[$username telah mengirimkan pesanan]\nMenunggu Admin memverifikasi pesanan.";
+        $ins = $conn->prepare("INSERT INTO chat_messages (transaction_id, sender_role, sender_name, message) VALUES (?, 'system', 'TavernEx Bot', ?)");
+        $ins->bind_param("ss", $trx_id, $msg);
+        $ins->execute();
         
-        $file_ext = pathinfo($_FILES["delivery_image"]["name"], PATHINFO_EXTENSION);
-        $file_name = "delivery_" . $trx_id . "_" . time() . "." . $file_ext;
-        $target_file = $target_dir . $file_name;
-        
-        if(move_uploaded_file($_FILES["delivery_image"]["tmp_name"], $target_file)) {
-            $proof_url = "uploads/proofs/" . $file_name;
-            
-            $conn->query("UPDATE transactions SET delivery_proof='$proof_url', sensitive_data='$sensitive' WHERE id='$trx_id'");
-            
-            $msg = "[$username telah mengirimkan pesanan]\nMenunggu Admin memverifikasi bukti pengiriman.";
-            $ins = $conn->prepare("INSERT INTO chat_messages (transaction_id, sender_role, sender_name, message) VALUES (?, 'system', 'TavernEx Bot', ?)");
-            $ins->bind_param("ss", $trx_id, $msg);
-            $ins->execute();
-            
-            echo json_encode(['status' => 'success']);
-        } else {
-            echo json_encode(['status' => 'error', 'msg' => 'Gagal mengunggah gambar.']);
-        }
+        echo json_encode(['status' => 'success']);
     } else {
-        echo json_encode(['status' => 'error', 'msg' => 'Bukti pengiriman wajib diisi.']);
+        echo json_encode(['status' => 'error', 'msg' => 'Gagal menyimpan ke database: ' . $stmt->error]);
     }
     exit;
 }

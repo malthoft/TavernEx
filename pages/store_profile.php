@@ -5,7 +5,7 @@ $seller_id = $_GET['id'] ?? 0;
 $stmt = $conn->prepare("SELECT u.* FROM users u WHERE u.id = ? AND u.role='seller'");
 $stmt->bind_param("i", $seller_id);
 $stmt->execute();
-$seller = $stmt->get_result()->fetch_assoc();
+$seller = stmt_fetch_assoc($stmt);
 
 if(!$seller) {
     header("Location: ../index.php");

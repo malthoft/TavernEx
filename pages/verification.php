@@ -8,35 +8,44 @@ if(!isset($_SESSION['user_id'])) {
 
 $seller_id = $_SESSION['user_id'];
 
-// Check verification status
-$stmt = $conn->prepare("SELECT is_verified FROM users WHERE id=?");
+// Check verification status - fetch both is_verified AND is_seller
+$stmt = $conn->prepare("SELECT is_verified, is_seller FROM users WHERE id=?");
 $stmt->bind_param("i", $seller_id);
 $stmt->execute();
-$user = $stmt->get_result()->fetch_assoc();
+$user = stmt_fetch_assoc($stmt);
 
-if($user['is_verified']) {
-    $already_verified = true;
-} else {
-    // Check if there is a pending request
+// Use strict integer comparison to prevent CPanel polyfill truthiness bugs
+$already_verified = ($user && (int)$user['is_verified'] === 1 && (int)$user['is_seller'] === 1);
+
+$latest_req = null;
+if (!$already_verified) {
+    // Check if there is a pending or approved request
     $req_stmt = $conn->prepare("SELECT status FROM verification_requests WHERE seller_id=? ORDER BY id DESC LIMIT 1");
-    $req_stmt->bind_param("i", $seller_id);
-    $req_stmt->execute();
-    $latest_req = $req_stmt->get_result()->fetch_assoc();
+    if ($req_stmt) {
+        $req_stmt->bind_param("i", $seller_id);
+        $req_stmt->execute();
+        $latest_req = stmt_fetch_assoc($req_stmt);
+    }
 }
 
-if($_SERVER['REQUEST_METHOD'] == 'POST' && !$user['is_verified'] && (!isset($latest_req) || $latest_req['status'] !== 'pending')) {
+// Handle form submission
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$already_verified && (!$latest_req || $latest_req['status'] !== 'pending')) {
+    $full_name = trim($_POST['full_name']);
+    $nik_ktp = trim($_POST['nik_ktp']);
     $wa = trim($_POST['whatsapp_number']);
     
-    // Simulate KTP upload
-    $ktp_image = "simulated_ktp_" . time() . ".jpg";
+    $ins = $conn->prepare("INSERT INTO verification_requests (seller_id, full_name, nik_ktp, whatsapp_number, status) VALUES (?, ?, ?, ?, 'pending')");
     
-    $ins = $conn->prepare("INSERT INTO verification_requests (seller_id, ktp_image, whatsapp_number, status) VALUES (?, ?, ?, 'pending')");
-    $ins->bind_param("iss", $seller_id, $ktp_image, $wa);
-    if($ins->execute()) {
-        $success = "Pengajuan verifikasi berhasil dikirim! Tim kami akan segera meninjaunya.";
-        $latest_req = ['status' => 'pending'];
+    if ($ins) {
+        $ins->bind_param("isss", $seller_id, $full_name, $nik_ktp, $wa);
+        if($ins->execute()) {
+            $success = "Pengajuan verifikasi berhasil dikirim! Tim kami akan segera meninjaunya.";
+            $latest_req = ['status' => 'pending'];
+        } else {
+            $error = "Terjadi kesalahan saat menyimpan data pengajuan: " . $ins->error;
+        }
     } else {
-        $error = "Terjadi kesalahan saat mengirim pengajuan.";
+        $error = "Sistem gagal memproses: Struktur database belum di-update. Hubungi Admin atau jalankan update_db.php. (Detail: " . $conn->error . ")";
     }
 }
 
@@ -59,7 +68,7 @@ require_once '../includes/header.php';
         </div>
 
         <div class="p-8">
-            <?php if(isset($already_verified) && $already_verified): ?>
+            <?php if($already_verified): ?>
                 <div class="bg-emerald-500/10 border border-emerald-500/30 p-6 rounded-xl flex items-center justify-center flex-col text-center">
                     <i class="ph-fill ph-check-circle text-emerald-500 text-6xl mb-4"></i>
                     <h2 class="text-xl font-bold text-white">Akun Anda Terverifikasi</h2>
@@ -68,20 +77,43 @@ require_once '../includes/header.php';
                         Mulai Jualan
                     </a>
                 </div>
-            <?php elseif(isset($latest_req) && $latest_req['status'] === 'pending'): ?>
-                <div class="bg-blue-500/10 border border-blue-500/30 p-6 rounded-xl flex items-center justify-center flex-col text-center">
+            <?php elseif($latest_req && $latest_req['status'] === 'pending'): ?>
+                <div class="bg-blue-500/10 border border-blue-500/30 p-8 rounded-xl flex items-center justify-center flex-col text-center">
                     <i class="ph-fill ph-hourglass-high text-blue-500 text-6xl mb-4 animate-pulse"></i>
-                    <h2 class="text-xl font-bold text-white">Pengajuan Sedang Diproses</h2>
-                    <p class="text-slate-400 text-sm mt-2">Mohon tunggu 1x24 jam hingga Admin meninjau data Anda.</p>
+                    <h2 class="text-xl font-bold text-white">Menunggu Verifikasi Admin</h2>
+                    <p class="text-slate-300 text-sm mt-3 max-w-md leading-relaxed">
+                        Pengajuan Anda untuk menjadi <span class="text-amber-400 font-semibold">Penjual TavernEx</span> sudah kami terima dan sedang dalam antrian peninjauan oleh tim Admin.
+                    </p>
+                    <div class="mt-6 bg-slate-900/60 border border-slate-700 rounded-lg p-4 w-full max-w-sm text-left">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="ph-fill ph-clock-countdown text-blue-400"></i>
+                            <span class="text-slate-300 text-xs font-semibold">Estimasi Waktu: 1x24 Jam</span>
+                        </div>
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="ph-fill ph-bell-ringing text-amber-400"></i>
+                            <span class="text-slate-300 text-xs">Anda akan mendapat notifikasi setelah Admin memverifikasi data Anda.</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <i class="ph-fill ph-info text-slate-400"></i>
+                            <span class="text-slate-400 text-xs">Jangan mengirim pengajuan ulang, karena data Anda sudah masuk ke sistem.</span>
+                        </div>
+                    </div>
+                </div>
+            <?php elseif($latest_req && $latest_req['status'] === 'approved'): ?>
+                <!-- Edge case: approved in verification_requests but user flags not yet updated -->
+                <div class="bg-emerald-500/10 border border-emerald-500/30 p-6 rounded-xl flex items-center justify-center flex-col text-center">
+                    <i class="ph-fill ph-check-circle text-emerald-500 text-6xl mb-4"></i>
+                    <h2 class="text-xl font-bold text-white">Pengajuan Anda Disetujui!</h2>
+                    <p class="text-slate-400 text-sm mt-2">Silakan logout dan login kembali untuk mengaktifkan fitur Seller Dashboard Anda.</p>
                 </div>
             <?php else: ?>
                 
-                <?php if(isset($latest_req) && $latest_req['status'] === 'rejected'): ?>
+                <?php if($latest_req && $latest_req['status'] === 'rejected'): ?>
                     <div class="bg-red-500/10 border border-red-500/30 p-4 rounded-xl mb-6 flex items-start gap-3">
                         <i class="ph-fill ph-warning-circle text-red-500 text-xl flex-shrink-0 mt-0.5"></i>
                         <div>
                             <p class="text-red-400 font-bold text-sm">Pengajuan Sebelumnya Ditolak</p>
-                            <p class="text-slate-400 text-xs mt-1">Silakan unggah kartu identitas yang lebih jelas.</p>
+                            <p class="text-slate-400 text-xs mt-1">Silakan perbaiki data identitas Anda dan coba ajukan kembali.</p>
                         </div>
                     </div>
                 <?php endif; ?>
@@ -95,14 +127,13 @@ require_once '../includes/header.php';
 
                 <form method="POST" action="">
                     <div class="mb-5">
-                        <label class="block text-slate-300 text-sm font-semibold mb-2">Upload Foto KTP Asli</label>
-                        <div class="border-2 border-dashed border-slate-600 rounded-xl p-8 text-center hover:bg-slate-700/50 transition-colors cursor-pointer relative group">
-                            <i class="ph-fill ph-upload-simple text-3xl text-slate-400 group-hover:text-emerald-500 mb-2 transition-colors"></i>
-                            <p class="text-sm font-bold text-white mb-1">Klik untuk upload atau drag & drop</p>
-                            <p class="text-xs text-slate-500">PNG, JPG up to 5MB</p>
-                            <input type="file" name="ktp_image" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" required>
-                        </div>
-                        <p class="text-xs text-emerald-500 mt-2 flex items-center gap-1"><i class="ph-fill ph-shield-check"></i> Proses upload disimulasikan di versi MVP ini.</p>
+                        <label class="block text-slate-300 text-sm font-semibold mb-2">Nama Lengkap (Sesuai KTP)</label>
+                        <input type="text" name="full_name" class="w-full bg-slate-900 border border-slate-600 rounded-lg py-3 px-4 text-white focus:border-emerald-500 focus:outline-none" required placeholder="John Doe">
+                    </div>
+
+                    <div class="mb-5">
+                        <label class="block text-slate-300 text-sm font-semibold mb-2">NIK KTP (16 Digit)</label>
+                        <input type="text" name="nik_ktp" class="w-full bg-slate-900 border border-slate-600 rounded-lg py-3 px-4 text-white focus:border-emerald-500 focus:outline-none" required placeholder="1234567890123456" pattern="[0-9]{16}">
                     </div>
 
                     <div class="mb-8">

@@ -94,12 +94,12 @@ if(isset($_SESSION['role'])) {
                             <i class="ph ph-question text-2xl hover:text-white transition"></i>
                         </a>
                         
-                        <div class="relative group cursor-pointer">
-                            <i class="ph-fill ph-bell text-2xl hover:text-white transition"></i>
+                        <a href="/tavernex/pages/notifications.php" class="relative group cursor-pointer block">
+                            <i class="ph-fill ph-bell text-2xl hover:text-white transition cursor-pointer"></i>
                             <?php if($notif_count > 0): ?>
                                 <span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-bold shadow-lg shadow-red-500/50"><?= $notif_count ?></span>
                             <?php endif; ?>
-                        </div>
+                        </a>
 
                         <?php if($_SESSION['role'] === 'buyer'): ?>
                             <a href="/tavernex/pages/wishlist.php" class="relative group cursor-pointer inline-block">

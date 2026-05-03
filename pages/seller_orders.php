@@ -45,8 +45,10 @@ $q_str .= " ORDER BY t.created_at DESC";
 
 $orders_q = $conn->query($q_str);
 $orders = [];
-while($row = $orders_q->fetch_assoc()) {
-    $orders[] = $row;
+if ($orders_q) {
+    while($row = $orders_q->fetch_assoc()) {
+        $orders[] = $row;
+    }
 }
 
 $seller_q = $conn->query("SELECT * FROM users WHERE id='$seller_id'");
@@ -138,7 +140,7 @@ require_once '../includes/header.php';
                     <div class="flex flex-col sm:flex-row gap-4 items-center">
                         <div class="w-16 h-16 rounded-xl flex-shrink-0 bg-slate-700 border border-slate-600 overflow-hidden relative">
                             <?php if($o['image_url']): ?>
-                                <img src="../<?= $o['image_url'] ?>" class="w-full h-full object-cover">
+                                <img src="<?= strpos($o['image_url'], 'http') === 0 || strpos($o['image_url'], 'data:') === 0 ? $o['image_url'] : '../' . $o['image_url'] ?>" class="w-full h-full object-cover">
                             <?php else: ?>
                                 <div class="w-full h-full <?= $o['color_theme'] ?>"></div>
                             <?php endif; ?>

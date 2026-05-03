@@ -8,10 +8,9 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     $stmt = $conn->prepare("SELECT id, username, role, is_seller FROM users WHERE username=? AND password=?");
     $stmt->bind_param("ss", $username, $pass);
     $stmt->execute();
-    $res = $stmt->get_result();
+    $user = stmt_fetch_assoc($stmt);
 
-    if($res->num_rows > 0) {
-        $user = $res->fetch_assoc();
+    if($user) {
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['username'] = $user['username'];
         

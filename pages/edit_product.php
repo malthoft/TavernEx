@@ -13,7 +13,7 @@ $product_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $stmt = $conn->prepare("SELECT * FROM products WHERE id=? AND seller_id=?");
 $stmt->bind_param("ii", $product_id, $seller_id);
 $stmt->execute();
-$product = $stmt->get_result()->fetch_assoc();
+$product = stmt_fetch_assoc($stmt);
 
 if(!$product) {
     header("Location: seller_products.php");
@@ -46,33 +46,42 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     }
     
-    $image_sql = "";
+    $image_url = null;
     if(!empty($_FILES['product_image']['name'])) {
-        $target_dir = "../uploads/products/";
-        $file_ext = pathinfo($_FILES["product_image"]["name"], PATHINFO_EXTENSION);
-        $file_name = time() . "_" . $seller_id . "." . $file_ext;
-        $target_file = $target_dir . $file_name;
+        $foto = $_FILES['product_image']['name'];
+        $target_dir = "../assets/images/";
+        if (!file_exists($target_dir)) { mkdir($target_dir, 0777, true); }
         
-        if(move_uploaded_file($_FILES["product_image"]["tmp_name"], $target_file)) {
-            $image_url = "uploads/products/" . $file_name;
-            $image_sql = ", image_url='$image_url'";
-            // Delete old image
-            if($product['image_url']) {
-                @unlink("../" . $product['image_url']);
+        $ext = strtolower(pathinfo($foto, PATHINFO_EXTENSION));
+        $foto_baru = time() . "_" . uniqid() . "." . $ext;
+        $target_file = $target_dir . $foto_baru;
+        
+        if(move_uploaded_file($_FILES['product_image']['tmp_name'], $target_file)){
+            $image_url = "assets/images/" . $foto_baru;
+            
+            // Delete old file if it was a file path
+            if(!empty($product['image_url']) && strpos($product['image_url'], 'data:') !== 0) {
+                $old_file = "../" . $product['image_url'];
+                if(file_exists($old_file)) { unlink($old_file); }
             }
         }
     }
     
-    $upd = $conn->prepare("UPDATE products SET category_id=?, title=?, price=?, stock=?, game=?, description=?, login_type=?, product_type=?, is_active=? $image_sql WHERE id=? AND seller_id=?");
-    $upd->bind_param("isiisssisii", $category_id, $title, $price, $stock, $game_name, $description, $login_type, $product_type, $is_active, $product_id, $seller_id);
+    if ($image_url) {
+        $upd = $conn->prepare("UPDATE products SET category_id=?, title=?, price=?, stock=?, game=?, description=?, login_type=?, product_type=?, is_active=?, image_url=? WHERE id=? AND seller_id=?");
+        $upd->bind_param("isiissssisii", $category_id, $title, $price, $stock, $game_name, $description, $login_type, $product_type, $is_active, $image_url, $product_id, $seller_id);
+    } else {
+        $upd = $conn->prepare("UPDATE products SET category_id=?, title=?, price=?, stock=?, game=?, description=?, login_type=?, product_type=?, is_active=? WHERE id=? AND seller_id=?");
+        $upd->bind_param("isiissssiii", $category_id, $title, $price, $stock, $game_name, $description, $login_type, $product_type, $is_active, $product_id, $seller_id);
+    }
     
-    if($upd->execute()) {
+    if($upd && $upd->execute()) {
         $success = "Produk berhasil diperbarui!";
         // Refresh product data
         $stmt->execute();
-        $product = $stmt->get_result()->fetch_assoc();
+        $product = stmt_fetch_assoc($stmt);
     } else {
-        $error = "Gagal memperbarui produk.";
+        $error = "Gagal memperbarui produk: " . ($upd ? $upd->error : $conn->error);
     }
 }
 
@@ -137,7 +146,7 @@ require_once '../includes/header.php';
                     <label class="block text-slate-300 text-sm font-semibold mb-2">Foto Produk (Thumbnail)</label>
                     <div class="flex items-center gap-4">
                         <?php if($product['image_url']): ?>
-                            <img src="../<?= $product['image_url'] ?>" class="w-12 h-12 rounded-lg object-cover border border-slate-600">
+                            <img src="<?= strpos($product['image_url'], 'http') === 0 || strpos($product['image_url'], 'data:') === 0 ? $product['image_url'] : '../' . $product['image_url'] ?>" class="w-12 h-12 rounded-lg object-cover border border-slate-600">
                         <?php endif; ?>
                         <input type="file" name="product_image" class="flex-grow bg-slate-900 border border-slate-600 rounded-lg py-2.5 px-4 text-white text-sm focus:border-emerald-500 focus:outline-none">
                     </div>

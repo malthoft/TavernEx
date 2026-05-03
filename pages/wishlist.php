@@ -48,7 +48,7 @@ require_once '../includes/header.php';
                 <a href="/tavernex/pages/product.php?id=<?= $row['id'] ?>" class="flex flex-col h-full">
                     <div class="h-40 w-full relative overflow-hidden">
                         <?php if($row['image_url']): ?>
-                            <img src="../<?= $row['image_url'] ?>" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                            <img src="<?= strpos($row['image_url'], 'http') === 0 || strpos($row['image_url'], 'data:') === 0 ? $row['image_url'] : '../' . $row['image_url'] ?>" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
                         <?php else: ?>
                             <div class="w-full h-full <?= $row['color_theme'] ?>"></div>
                         <?php endif; ?>

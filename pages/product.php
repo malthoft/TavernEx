@@ -5,7 +5,7 @@ $product_id = $_GET['id'] ?? 0;
 $stmt = $conn->prepare("SELECT p.*, u.username as seller_name, u.is_verified, u.store_status FROM products p JOIN users u ON p.seller_id = u.id WHERE p.id = ?");
 $stmt->bind_param("i", $product_id);
 $stmt->execute();
-$product = $stmt->get_result()->fetch_assoc();
+$product = stmt_fetch_assoc($stmt);
 
 if(!$product) {
     header("Location: ../index.php");
@@ -62,7 +62,7 @@ $cat_id = $product['category_id'] ?? 0;
 $sim_stmt = $conn->prepare("SELECT p.*, u.username as seller_name, u.is_verified FROM products p JOIN users u ON p.seller_id = u.id WHERE p.category_id = ? AND p.id != ? ORDER BY RAND() LIMIT 4");
 $sim_stmt->bind_param("ii", $cat_id, $product_id);
 $sim_stmt->execute();
-$similar_products = $sim_stmt->get_result();
+$similar_products = stmt_get_all($sim_stmt);
 
 require_once '../includes/header.php'; 
 ?>
@@ -82,7 +82,7 @@ require_once '../includes/header.php';
     <div class="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden flex flex-col md:flex-row shadow-2xl">
         <div class="w-full md:w-2/5 h-80 md:h-auto overflow-hidden relative">
             <?php if($product['image_url']): ?>
-                <img src="../<?= $product['image_url'] ?>" class="w-full h-full object-cover">
+                <img src="<?= strpos($product['image_url'], 'http') === 0 || strpos($product['image_url'], 'data:') === 0 ? $product['image_url'] : '../' . $product['image_url'] ?>" class="w-full h-full object-cover">
             <?php else: ?>
                 <div class="w-full h-full <?= $product['color_theme'] ?>"></div>
             <?php endif; ?>
@@ -185,11 +185,11 @@ require_once '../includes/header.php';
         </div>
     </div>
 
-    <?php if($similar_products->num_rows > 0): ?>
+    <?php if(count($similar_products) > 0): ?>
     <div class="mt-12">
         <h2 class="text-xl font-bold text-white mb-6 border-l-4 border-emerald-500 pl-3">Produk Serupa</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <?php while($row = $similar_products->fetch_assoc()): ?>
+            <?php foreach($similar_products as $row): ?>
                 <a href="product.php?id=<?= $row['id'] ?>" class="bg-slate-800 rounded-xl overflow-hidden border border-slate-700 hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10 transition-all group cursor-pointer flex flex-col">
                     <div class="h-32 w-full relative <?= $row['color_theme'] ?>">
                         <div class="absolute top-2 left-2 bg-slate-900/80 backdrop-blur-sm px-2 py-1 rounded text-xs font-bold text-white border border-slate-600/50"><?= $row['game'] ?></div>
@@ -207,7 +207,7 @@ require_once '../includes/header.php';
                         </div>
                     </div>
                 </a>
-            <?php endwhile; ?>
+            <?php endforeach; ?>
         </div>
     </div>
     <?php endif; ?>

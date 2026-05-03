@@ -32,13 +32,14 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             $image_url = NULL;
             
             if(!empty($_FILES['category_image']['name'])) {
-                $target_dir = "../uploads/categories/";
-                $file_ext = pathinfo($_FILES["category_image"]["name"], PATHINFO_EXTENSION);
-                $file_name = time() . "_" . $slug . "." . $file_ext;
-                $target_file = $target_dir . $file_name;
-                
-                if(move_uploaded_file($_FILES["category_image"]["tmp_name"], $target_file)) {
-                    $image_url = "uploads/categories/" . $file_name;
+                $foto = $_FILES['category_image']['name'];
+                $target_dir = "../assets/images/";
+                if (!file_exists($target_dir)) { mkdir($target_dir, 0777, true); }
+                $ext = strtolower(pathinfo($foto, PATHINFO_EXTENSION));
+                $foto_baru = time() . "_" . uniqid() . "." . $ext;
+                $target_file = $target_dir . $foto_baru;
+                if(move_uploaded_file($_FILES['category_image']['tmp_name'], $target_file)){
+                    $image_url = "assets/images/" . $foto_baru;
                 }
             }
             
@@ -57,31 +58,54 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
         $cat_name = trim($_POST['category_name']);
         $slug = strtolower(str_replace(' ', '-', $cat_name));
         
-        $image_sql = "";
+        $image_url = null;
         if(!empty($_FILES['category_image']['name'])) {
-            $target_dir = "../uploads/categories/";
-            $file_ext = pathinfo($_FILES["category_image"]["name"], PATHINFO_EXTENSION);
-            $file_name = time() . "_" . $slug . "." . $file_ext;
-            $target_file = $target_dir . $file_name;
-            
-            if(move_uploaded_file($_FILES["category_image"]["tmp_name"], $target_file)) {
-                $image_url = "uploads/categories/" . $file_name;
-                $image_sql = ", image_url='$image_url'";
+            $foto = $_FILES['category_image']['name'];
+            $target_dir = "../assets/images/";
+            if (!file_exists($target_dir)) { mkdir($target_dir, 0777, true); }
+            $ext = strtolower(pathinfo($foto, PATHINFO_EXTENSION));
+            $foto_baru = time() . "_" . uniqid() . "." . $ext;
+            $target_file = $target_dir . $foto_baru;
+            if(move_uploaded_file($_FILES['category_image']['tmp_name'], $target_file)){
+                $image_url = "assets/images/" . $foto_baru;
+                
+                // Get old image
+                $stmt_old = $conn->prepare("SELECT image_url FROM categories WHERE id=?");
+                $stmt_old->bind_param("i", $cat_id);
+                $stmt_old->execute();
+                $old_row = stmt_fetch_assoc($stmt_old);
+                if($old_row && !empty($old_row['image_url']) && strpos($old_row['image_url'], 'data:') !== 0) {
+                    $old_file = "../" . $old_row['image_url'];
+                    if(file_exists($old_file)) { unlink($old_file); }
+                }
             }
         }
         
         $device_type = $_POST['device_type'] ?? 'both';
-        $conn->query("UPDATE categories SET name='$cat_name', slug='$slug', device_type='$device_type' $image_sql WHERE id='$cat_id'");
+        
+        if ($image_url) {
+            $upd = $conn->prepare("UPDATE categories SET name=?, slug=?, device_type=?, image_url=? WHERE id=?");
+            $upd->bind_param("ssssi", $cat_name, $slug, $device_type, $image_url, $cat_id);
+            $upd->execute();
+        } else {
+            $upd = $conn->prepare("UPDATE categories SET name=?, slug=?, device_type=? WHERE id=?");
+            $upd->bind_param("sssi", $cat_name, $slug, $device_type, $cat_id);
+            $upd->execute();
+        }
         $msg = "Kategori berhasil diperbarui.";
     }
     if(isset($_POST['delete_category'])) {
         $cat_id = $_POST['cat_id'];
-        // Optional: delete image file from server first
-        $res = $conn->query("SELECT image_url FROM categories WHERE id='$cat_id'");
-        $cat_data = $res->fetch_assoc();
-        if($cat_data && $cat_data['image_url']) {
-            @unlink("../" . $cat_data['image_url']);
+        
+        $stmt_old = $conn->prepare("SELECT image_url FROM categories WHERE id=?");
+        $stmt_old->bind_param("i", $cat_id);
+        $stmt_old->execute();
+        $old_row = stmt_fetch_assoc($stmt_old);
+        if($old_row && !empty($old_row['image_url']) && strpos($old_row['image_url'], 'data:') !== 0) {
+            $old_file = "../" . $old_row['image_url'];
+            if(file_exists($old_file)) { unlink($old_file); }
         }
+        
         $conn->query("DELETE FROM categories WHERE id='$cat_id'");
         $msg = "Kategori berhasil dihapus.";
     }
@@ -156,16 +180,13 @@ require_once '../includes/header.php';
                         <?php while($v = $pending_verifications->fetch_assoc()): ?>
                             <div class="bg-slate-900 border border-slate-700 rounded-xl p-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
                                 <div class="flex items-center gap-4">
-                                    <div class="w-16 h-12 bg-slate-800 border border-slate-600 rounded flex items-center justify-center relative group">
-                                        <i class="ph ph-image text-slate-400"></i>
-                                        <!-- Simulasi hover untuk melihat KTP -->
-                                        <div class="absolute hidden group-hover:block bottom-14 left-0 w-48 h-32 bg-slate-700 rounded shadow-2xl border border-slate-500 z-50 flex items-center justify-center p-2 text-xs text-center text-slate-300">
-                                            [Simulasi File Foto KTP] <?= $v['ktp_image'] ?>
-                                        </div>
+                                    <div class="w-16 h-12 bg-slate-800 border border-slate-600 rounded flex items-center justify-center relative">
+                                        <i class="ph-fill ph-identification-card text-slate-400 text-2xl"></i>
                                     </div>
                                     <div>
-                                        <p class="text-white font-bold text-sm"><?= $v['username'] ?></p>
-                                        <p class="text-slate-400 text-xs mt-1"><i class="ph-fill ph-whatsapp text-emerald-500"></i> <?= $v['whatsapp_number'] ?></p>
+                                        <p class="text-white font-bold text-sm"><?= $v['username'] ?> <span class="text-xs text-slate-400 font-normal">(<?= htmlspecialchars($v['full_name']) ?>)</span></p>
+                                        <p class="text-slate-400 text-xs mt-1"><i class="ph-fill ph-identification-card text-emerald-500"></i> NIK: <?= htmlspecialchars($v['nik_ktp']) ?></p>
+                                        <p class="text-slate-400 text-xs mt-1"><i class="ph-fill ph-whatsapp text-emerald-500"></i> <?= htmlspecialchars($v['whatsapp_number']) ?></p>
                                     </div>
                                 </div>
                                 <div class="flex gap-2 w-full md:w-auto">
@@ -299,7 +320,7 @@ require_once '../includes/header.php';
                             <div class="flex items-center gap-3">
                                 <div class="w-12 h-12 rounded-lg bg-slate-800 border border-slate-700 overflow-hidden flex-shrink-0">
                                     <?php if($cat['image_url']): ?>
-                                        <img src="../<?= $cat['image_url'] ?>" class="w-full h-full object-cover">
+                                        <img src="<?= strpos($cat['image_url'], 'http') === 0 || strpos($cat['image_url'], 'data:') === 0 ? $cat['image_url'] : '../' . $cat['image_url'] ?>" class="w-full h-full object-cover">
                                     <?php else: ?>
                                         <div class="w-full h-full flex items-center justify-center text-slate-600"><i class="ph ph-image text-2xl"></i></div>
                                     <?php endif; ?>

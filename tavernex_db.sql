@@ -119,7 +119,8 @@ CREATE TABLE `chat_messages` (
 CREATE TABLE `verification_requests` (
   `id` int(11) KEY AUTO_INCREMENT,
   `seller_id` int(11) NOT NULL,
-  `ktp_image` varchar(255) NOT NULL,
+  `full_name` varchar(150) NOT NULL,
+  `nik_ktp` varchar(50) NOT NULL,
   `whatsapp_number` varchar(50) NOT NULL,
   `status` enum('pending','approved','rejected') DEFAULT 'pending',
   `created_at` timestamp DEFAULT CURRENT_TIMESTAMP

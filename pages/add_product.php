@@ -12,7 +12,7 @@ $seller_id = $_SESSION['user_id'];
 $stmt = $conn->prepare("SELECT is_verified FROM users WHERE id=?");
 $stmt->bind_param("i", $seller_id);
 $stmt->execute();
-$user = $stmt->get_result()->fetch_assoc();
+$user = stmt_fetch_assoc($stmt);
 
 if(!$user['is_verified']) {
     header("Location: verification.php");
@@ -37,13 +37,17 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     
     $image_url = NULL;
     if(!empty($_FILES['product_image']['name'])) {
-        $target_dir = "../uploads/products/";
-        $file_ext = pathinfo($_FILES["product_image"]["name"], PATHINFO_EXTENSION);
-        $file_name = time() . "_" . $seller_id . "." . $file_ext;
-        $target_file = $target_dir . $file_name;
+        $foto = $_FILES['product_image']['name'];
+        $target_dir = "../assets/images/";
+        if (!file_exists($target_dir)) { mkdir($target_dir, 0777, true); }
         
-        if(move_uploaded_file($_FILES["product_image"]["tmp_name"], $target_file)) {
-            $image_url = "uploads/products/" . $file_name;
+        // Clean filename and add timestamp
+        $ext = strtolower(pathinfo($foto, PATHINFO_EXTENSION));
+        $foto_baru = time() . "_" . uniqid() . "." . $ext;
+        $target_file = $target_dir . $foto_baru;
+        
+        if(move_uploaded_file($_FILES['product_image']['tmp_name'], $target_file)){
+            $image_url = "assets/images/" . $foto_baru;
         }
     }
     
@@ -67,12 +71,12 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     $color_theme = $themes[array_rand($themes)];
     
     $ins = $conn->prepare("INSERT INTO products (seller_id, category_id, title, price, stock, game, description, login_type, product_type, image_url, color_theme) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $ins->bind_param("iiiisssssss", $seller_id, $category_id, $title, $price, $stock, $game_name, $description, $login_type, $product_type, $image_url, $color_theme);
+    $ins->bind_param("iisiissssss", $seller_id, $category_id, $title, $price, $stock, $game_name, $description, $login_type, $product_type, $image_url, $color_theme);
     
-    if($ins->execute()) {
+    if($ins && $ins->execute()) {
         $success = "Produk berhasil ditambahkan!";
     } else {
-        $error = "Gagal menambahkan produk.";
+        $error = "Gagal menambahkan produk: " . ($ins ? $ins->error : $conn->error);
     }
 }
 

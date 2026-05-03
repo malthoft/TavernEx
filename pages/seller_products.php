@@ -16,12 +16,7 @@ if(isset($_POST['toggle_active'])) {
 
 if(isset($_POST['delete_product'])) {
     $pid = intval($_POST['prod_id']);
-    // Optional: Delete image
-    $res = $conn->query("SELECT image_url FROM products WHERE id='$pid' AND seller_id='$seller_id'");
-    $prod_data = $res->fetch_assoc();
-    if($prod_data && $prod_data['image_url']) {
-        @unlink("../" . $prod_data['image_url']);
-    }
+    // No file deletion needed since image is in database
     $conn->query("DELETE FROM products WHERE id='$pid' AND seller_id='$seller_id'");
 }
 
@@ -110,7 +105,7 @@ require_once '../includes/header.php';
                                     <div class="flex items-center gap-3">
                                         <div class="w-12 h-12 rounded-lg bg-slate-700 border border-slate-600 overflow-hidden flex-shrink-0">
                                             <?php if($p['image_url']): ?>
-                                                <img src="../<?= $p['image_url'] ?>" class="w-full h-full object-cover">
+                                                <img src="<?= strpos($p['image_url'], 'http') === 0 || strpos($p['image_url'], 'data:') === 0 ? $p['image_url'] : '../' . $p['image_url'] ?>" class="w-full h-full object-cover">
                                             <?php else: ?>
                                                 <div class="w-full h-full flex items-center justify-center text-slate-500"><i class="ph ph-image text-2xl"></i></div>
                                             <?php endif; ?>

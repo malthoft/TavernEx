@@ -17,7 +17,7 @@ $stmt = $conn->prepare("SELECT t.*, p.title, p.price, p.color_theme, s.username 
                         WHERE t.id = ?");
 $stmt->bind_param("s", $trx_id);
 $stmt->execute();
-$trx = $stmt->get_result()->fetch_assoc();
+$trx = stmt_fetch_assoc($stmt);
 
 if(!$trx) { echo "Transaksi tidak ditemukan"; exit; }
 
@@ -80,9 +80,9 @@ require_once '../includes/header.php';
                 </div>
             </div>
 
-                <?php if($role == 'seller' && $trx['status'] == 'processing' && empty($trx['delivery_proof'])): ?>
+                <?php if($role == 'seller' && $trx['status'] == 'processing' && empty($trx['sensitive_data'])): ?>
                     <button onclick="document.getElementById('deliveryModal').classList.remove('hidden')" class="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-slate-900 rounded-lg font-bold text-sm shadow-lg">
-                        <i class="ph-fill ph-paper-plane-tilt"></i> Kirim Data & Bukti Pesanan
+                        <i class="ph-fill ph-paper-plane-tilt"></i> Kirim Data Pesanan
                     </button>
                 <?php endif; ?>
 
@@ -92,10 +92,9 @@ require_once '../includes/header.php';
                             <i class="ph ph-check-square"></i> Verifikasi Dana Masuk
                         </button>
                     <?php elseif($trx['status'] == 'processing'): ?>
-                        <?php if(!empty($trx['delivery_proof'])): ?>
+                        <?php if(!empty($trx['sensitive_data'])): ?>
                             <div class="bg-amber-500/10 border border-amber-500/30 p-3 rounded-lg mb-3">
-                                <p class="text-xs text-amber-500 mb-2 font-bold">Penjual sudah kirim bukti!</p>
-                                <a href="../<?= $trx['delivery_proof'] ?>" target="_blank" class="text-[10px] text-blue-400 underline">Klik Lihat Bukti Pengiriman</a>
+                                <p class="text-xs text-amber-500 mb-2 font-bold">Penjual sudah kirim data pesanan!</p>
                             </div>
                             <button onclick="handleAction('finish_transaction')" class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-slate-900 rounded-lg font-bold text-sm shadow-lg">
                                 <i class="ph-fill ph-check-circle"></i> Verifikasi & Selesaikan
@@ -121,8 +120,7 @@ require_once '../includes/header.php';
                 <?php endif; ?>
             </div>
         </div>
-    </div>
-
+    
     <div class="w-full lg:w-2/3 bg-slate-900 flex flex-col h-[calc(100vh-64px)] relative">
         <div class="h-16 border-b border-slate-700 bg-slate-800 flex items-center justify-between px-5 flex-shrink-0">
             <div class="flex items-center gap-3">
@@ -164,16 +162,9 @@ require_once '../includes/header.php';
         </div>
         
         <form id="deliveryForm" onsubmit="event.preventDefault(); handleDeliverySubmit();">
-            <div class="mb-4">
-                <label class="block text-slate-400 text-xs font-bold mb-2 uppercase">Bukti Pengiriman (Screenshot)</label>
-                <div class="relative group">
-                    <input type="file" id="delivery_image" class="w-full bg-slate-900 border border-slate-600 rounded-lg py-2 px-4 text-white text-sm focus:outline-none focus:border-emerald-500" required>
-                </div>
-            </div>
-            
             <div class="mb-6">
-                <label class="block text-slate-400 text-xs font-bold mb-2 uppercase">Data Login / Informasi Produk (Opsional)</label>
-                <textarea id="sensitive_data" rows="4" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white text-sm focus:outline-none focus:border-emerald-500" placeholder="Email: example@mail.com&#10;Password: *****"></textarea>
+                <label class="block text-slate-400 text-xs font-bold mb-2 uppercase">Data Login / Informasi Produk</label>
+                <textarea id="sensitive_data" rows="4" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white text-sm focus:outline-none focus:border-emerald-500" placeholder="Email: example@mail.com&#10;Password: *****" required></textarea>
                 <p class="text-[10px] text-slate-500 mt-2 italic">*Data ini hanya akan bisa dilihat oleh PEMBELI setelah admin memverifikasi pengiriman Anda.</p>
             </div>
             
@@ -266,12 +257,11 @@ require_once '../includes/header.php';
     });
 
     async function handleDeliverySubmit() {
-        const fileInput = document.getElementById('delivery_image');
         const sensitive = document.getElementById('sensitive_data').value;
         const btn = document.getElementById('deliverySubmitBtn');
         
-        if(fileInput.files.length === 0) {
-            alert('Silakan pilih foto bukti pengiriman.');
+        if(!sensitive.trim()) {
+            alert('Silakan isi Data Login / Informasi Produk.');
             return;
         }
 
@@ -280,7 +270,6 @@ require_once '../includes/header.php';
 
         const formData = new FormData();
         formData.append('trx_id', trxId);
-        formData.append('delivery_image', fileInput.files[0]);
         formData.append('sensitive_data', sensitive);
 
         try {

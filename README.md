@@ -19,13 +19,13 @@ Tujuan utama TavernEx adalah menyediakan "Tavern" atau tempat persinggahan yang 
 ---
 
 ## 🔑 Akun Uji Coba (Credentials)
-Gunakan akun berikut untuk mencoba fitur di setiap role.
+Gunakan akun berikut untuk mencoba fitur di setiap role. Password untuk semua akun di bawah adalah: `123`
 
-| Role | Username | Password |
+| Role | Username | Kegunaan |
 | :--- | :--- | :--- |
-| **Admin** | `Admin_Tavern` | admin123 |
-| **Penjual** | `ProGamer_ID` | 234 |
-| **Pembeli** | `GuestBuyer_99` | 1234 |
+| **Admin** | `Admin_Tavern` | Verifikasi transaksi, verifikasi penjual, & moderasi konten. |
+| **Penjual** | `ProGamer_ID` | Menjual akun/item, kirim pesanan, & cek riwayat dagangan. |
+| **Pembeli** | `GuestBuyer_99` | Mencari produk, beli via escrow, & ulasan produk. |
 
 ---
 
